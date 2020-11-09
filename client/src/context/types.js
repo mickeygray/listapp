@@ -1,0 +1,2 @@
+export const UPLOAD_FILES = "UPLOAD_FILES"
+export const SEND_TODAYS = "SEND_TODAYS"
