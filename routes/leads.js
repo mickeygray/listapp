@@ -22,15 +22,15 @@ router.put("/", async (req, res) => {
   let reg1 = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gis; // Get emails
   let reg2 = /^\s*(?:\+?(\d{1,3}))?[- (]*(\d{3})[- )]*(\d{3})[- ]*(\d{4})(?: *[x/#]{1}(\d+))?\s*$/gim;
   let liens = string.match(/(?<=Debtor Information\s*).*?(?=\s*Number)/gs);
-  let emails = string.match(reg1);
-  let phone1 = string
-    .match(reg2)
-    .toString()
-    .replace(/[\n\r]/g, "")
-    .split(",");
+  let emails = [string.match(reg1)].flat()
+  let phone1 = [string.match(reg2)].flat()
+  
+
 
   if (phone1.length > 0)
-    phone1 = phone1.map((phone) => phone.trim()).filter(distinct);
+    phone1 = phone1.toString()
+    .replace(/[\n\r]/g, "")
+    .split(",").map((phone) => phone.trim()).filter(distinct);
 
   let bankruptcy1 = string.match(
     /(?<=Petitioner Information\s*).*?(?=\s*Meeting Date)/gs
@@ -73,6 +73,7 @@ router.put("/", async (req, res) => {
         .replace(/[\s,]+/g, " ")
         .trim()
         .replace("Debtor 1", "")
+        .replace("DebtorÂ 1",'')
         .replace("Debtor 2", "")
         .replace("Filing 1", "")
         .replace("Name:", '"fullName":"')
@@ -109,7 +110,7 @@ let lead = formattedLiens[0]
     lead.amount = lead.amount.replace(":", "");
   }
 
-  lead.filingDate = lead.filingDate.replace(": ", "");
+ if(lead.filingDate) { lead.filingDate = lead.filingDate.replace(": ", "")}
   lead.state = lead.state.replace(":", "").replace(": ", "");
 
   if (lead.plaintiff != null) {
@@ -260,7 +261,7 @@ let lead = formattedLiens[0]
 
     const realBody = "{" + name + address + stone + "}";
 
-    lead.real = JSON.parse(realBody.replace(/\s{2,10}/g, " "));
+  //  lead.real = JSON.parse(realBody.replace(/\s{2,10}/g, " "));
   } else {
     lead.real = {
       name: "",
@@ -307,20 +308,31 @@ let lead = formattedLiens[0]
 
     const bankBody = "{" + gock + begro + "}";
 
-    lead.bankruptcy = JSON.parse(bankBody);
+    //lead.bankruptcy = JSON.parse(bankBody);
   }
-  lead.age = string.match(/(?<=[(]Age:\s*).*?(?=\s*[)])/gs)[0].toString();
-  lead.dob = string
-    .match(/(?<=[-]XXXX\s*).*?(?=\s*[(]Age:)/gs)[0]
-    .toString()
-    .trim();
+  lead.age = string.match(/(?<=[(]Age:\s*).*?(?=\s*[)])/gs)
+  
+  if (lead.age) {
+    lead.age = lead.age[0].toString()
+  }
+  
+    lead.dob = string
+    .match(/(?<=[-]XXXX\s*).*?(?=\s*[(]Age:)/gs)
 
+    if(lead.dob){
+      lead.dob = lead.dob[0].toString().trim().substring(0, 7);
+    }
+
+if(lead.filingDate){
   lead.filingDate = lead.filingDate.replace(":", "").trim();
+}
+  
 
-  lead.dob = lead.dob.substring(0, 7);
+  lead.ssn = string.slice(string.lastIndexOf('SSN')).toString().match(/.+?(?=XXXX)/)
 
-  lead.ssn = string.slice(string.lastIndexOf('SSN')).toString().match(/.+?(?=XXXX)/)[0].slice(4)
-
+  if(lead.ssn){
+   lead.ssn = lead.ssn[0].slice(4)
+  }
 
   const regex = new RegExp("/((^[A-Z][,][A-Z]))/", "g");
 
@@ -391,109 +403,41 @@ router.get("/", async (req, res) => {
     },
   });
 
-   let result = [];
-
-    prospects.map((list, i) =>
-      result[i]
-        ? (result[i].fullName = list.fullName)
-            (result[i].First_Name = list.firstName)
-              (result[i].Last_Name = list.lastName)
-            (result[i].Delivery_Address = list.deliveryAddress)
-          (result[i].City = list.city)(result[i].State = list.state)
-            (result[i].Zip_4 = list.zip4)
-          (result[i].County = list.county)
-             (result[i].plaintiff= list.plaintiff)
-              (result[i].Amount = list.amount)
-             (result[i].age = list.age)
-             (result[i].dob= list.dob)
-             (result[i].snn= list.ssn)
-             (result[i].plaintiff2= list.otherliens[1].plaintiff)
-             (result[i].filingDate2= list.otherliens[1].filingDate)
-             (result[i].amount2= list.otherliens[1].amount)
-             (result[i].plaintiff3= list.otherliens[2].plaintiff)
-             (result[i].filingDate3= list.otherliens[2].filingDate)
-             (result[i].amount3= list.otherliens[2].amount)
-               (result[i].amount4= list.otherliens[3].amount)
-             (result[i].plaintiff4= list.otherliens[3].plaintiff)
-               (result[i].filingDate4= list.otherliens[3].filingDate)
-             (result[i].plaintiff5= list.otherliens[4].plaintiff)
-      
-             
-           
-             (result[i].filingDate5= list.otherliens[4].filingDate)
-           
-   
-           
-             (result[i].amount5= list.otherliens[4].amount)
-        
-           
-         
-         
-          (result[i].phone1 = list.phones[0])
-          (result[i].phone2 = list.phones[1])
-          (result[i].phone3 = list.phones[2])
-          (result[i].phone4 = list.phones[3])
-          (result[i].phone5 = list.phones[4])
-          (result[i].phone6 = list.phones[5])
-          (result[i].phone7 = list.phones[6])
-          (result[i].phone8 = list.phones[7])
-          (result[i].phone9 = list.phones[8])
-           (result[i].emailAddress1 = list.emailAddresses[0])
-           (result[i].emailAddress2 = list.emailAddresses[1])
-           (result[i].emailAddress3 = list.emailAddresses[2])
-           (result[i].emailAddress4 = list.emailAddresses[3])
-           (result[i].emailAddress5 = list.emailAddresses[4])
-           (result[i].emailAddress6 = list.emailAddresses[5])
-           (result[i].emailAddress7 = list.emailAddresses[6])
-
-        : (result[i] = {
+  console.log(prospects)
+const filterUnwanted = (arr) => {
+   const required = arr.filter(el => {
+      return el.otherliens;
+   });
+   return required;
+};
 
 
+  const result = prospects.map(({fullName, firstName, lastName, deliveryAddress, city, state,zip4, county, plaintiff, amount, age, dob, ssn, otherliens, phones, emailAddresses}) => {
+  let obj = {
+    fullName: fullName,
+    First_Name: firstName,
+    Last_Name: lastName,
+    Delivery_Address: deliveryAddress,
+    City: city,
+    State: state,
+    Zip_4: zip4,
+    County: county,
+    plaintiff: plaintiff,
+    Amount: amount,
+    age: age,
+    dob: dob,
+    ssn: ssn
+  };
+  otherliens.forEach(({plaintiff, amount}, i) => {
+    obj[`plaintiff${i+1}`] = plaintiff;
+    obj[`amount${i+1}`] = amount;
+  });
+  phones.forEach((phone, i) => obj[`phone${i+1}`] = phone);
+  emailAddresses.forEach((addr, i) => obj[`emailAddress${i+1}`] = addr);
+  return obj;
+})
 
-         Full_Name: list.fullName,
-          First_Name: list.firstName,
-            Last_Name: list.lastName,
-            Delivery_Address: list.deliveryAddress,
-            City: list.city,
-            State: list.state,
-            Zip_4: list.zip4,
-            County: list.county,
-            dob: list.dob,
-            ssn:list.ssn,
-            age:list.age,
-            Amount: list.amount,
-            plaintiff: list.plaintiff,         
-            filingDate: list.filingDate,
-
-         phone1:list.phones[0],
-         phone2:list.phones[1],
-         phone3:list.phones[3],
-         phone4:list.phones[4],
-         phone5:list.phones[5],
-         phone6:list.phones[6],
-         phone7:list.phones[7],      
-         phone8:list.phones[8],
-        emailAddress1:list.emailAddresses[0],
-        emailAddress2:list.emailAddresses[1],
-         emailAddress3:list.emailAddresses[2],
-         emailAddress4:list.emailAddresses[3],
-         emailAddress5:list.emailAddresses[4],
-         emailAddress6:list.emailAddresses[5],
-         plaintiff2: list.otherliens[1].plaintiff,
-         amount2: list.otherliens[1].amount,
-         filingDate2: list.otherliens[1].filingDate,
-         plaintiff3: list.otherliens[2].plaintiff,
-         filingDate3: list.otherliens[2].filingDate,
-         amount3: list.otherliens[2].amount,
-         plaintiff4: list.otherliens[3].plaintiff,
-         amount4: list.otherliens[3].amount,
-         filingDate4: list.otherliens[3].filingDate,
-         plaintiff5: list.otherliens[4].plaintiff,
-         amount5: list.otherliens[4].amount,
-         filingDate5: list.otherliens[4].filingDate,
-          })
-    ); 
-
+console.log(result)
  const json2csvParser = new Parser();
  const csv = json2csvParser.parse(result);
 const transporter = nodemailer.createTransport({
@@ -511,7 +455,7 @@ const transporter = nodemailer.createTransport({
   const mailer2 = {
     title: "list",
     from: "mickey",
-    to: "arios@nattaxexperts.com",
+    to: "mickeygray85@hotmail.com",
     subject: `Lead Scrape ${new Date(Date.now())}`,
     text: `hurry up fat fuck`,
     attachments:[attachment2]

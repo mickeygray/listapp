@@ -72,11 +72,9 @@ const leadSchema = new Schema(
       filingType: String,
     },
     otherliens:[{
-      fullName: String,
-      ssn:String,
-      plaintiff:String,
-      amount:String,
-      filingDate:String
+      plaintiff:{ type: String, default: '0' },
+      amount:{ type: String, default: '0' },
+      filingDate:{ type: String, default: '0' }
     }]
   },
 
