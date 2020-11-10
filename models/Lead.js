@@ -55,26 +55,10 @@ const leadSchema = new Schema(
     emailAddresses: [String],
     email: String,
     emailAddress: String,
-    costs: [
-      {
-        mailer: String,
-        unitCost: Number,
-        date: Date,
-      },
-    ],
-    real: {
-      name: String,
-      address: String,
-      amount: String,
-    },
-    bankruptcy: {
-      court: String,
-      filingType: String,
-    },
     otherliens:[{
-      plaintiff:{ type: String, default: '0' },
-      amount:{ type: String, default: '0' },
-      filingDate:{ type: String, default: '0' }
+      plaintiff:{ type: String },
+      amount:{ type: String },
+      filingDate:{ type: String }
     }]
   },
 

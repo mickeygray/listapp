@@ -4,12 +4,13 @@ const Lead = require('../models/Lead')
 const moment = require('moment')
 const { Parser } = require("json2csv");
 const nodemailer = require("nodemailer");
-
+const utf8 = require('utf8');
 
 router.put("/", async (req, res) => {
   
-   const string = Object.keys(req.body).toString()
+ let string = Object.keys(req.body).toString()
 
+ string = string.replace(/[^\x00-\x7F]/g, " ");
   const distinct = (value, index, self) => {
     return self.indexOf(value) === index;
   };
@@ -87,14 +88,14 @@ router.put("/", async (req, res) => {
       +'"}';
   }
 
-  console.log(leadBody)
+ // console.log(leadBody)
 
   let lead = JSON.parse(leadBody);
 
  formattedLiens.push(lead)
 })
 
-console.log(formattedLiens)
+//console.log(formattedLiens)
 
 
 let lead = formattedLiens[0]
@@ -111,7 +112,17 @@ let lead = formattedLiens[0]
   }
 
  if(lead.filingDate) { lead.filingDate = lead.filingDate.replace(": ", "")}
-  lead.state = lead.state.replace(":", "").replace(": ", "");
+
+ //  lead.city = lead.deliveryAddress.match(/#\d+ ([^,]+), ([A-Z]{2}) (\d{5})/)
+let citystate = lead.deliveryAddress.match(/([a-zA-Z ]+ [a-zA-z ]+)/).toString()
+
+citystate = citystate.split(' ')
+citystate = citystate.filter(e => String(e).trim());
+if(citystate[citystate.length-1].length === 2){
+lead.state = citystate[citystate.length-1] 
+} 
+lead.state = lead.state.replace(":", "").replace(": ", "");
+
 
   if (lead.plaintiff != null) {
     lead.plaintiff = lead.plaintiff
@@ -125,7 +136,7 @@ let lead = formattedLiens[0]
       .toProperCase();
   }
 
-  if (lead.deliveryAddress)
+  if (lead.deliveryAddress){
     lead.zip4 = lead.deliveryAddress
       .substring(
         lead.deliveryAddress.lastIndexOf(lead.state),
@@ -135,16 +146,25 @@ let lead = formattedLiens[0]
       .splice(-1)
       .toString();
 
-  if (lead.deliveryAddress != null) {
-    lead.city = lead.deliveryAddress
+      
+
+    lead.deliveryAddress = lead.deliveryAddress
       .substring(0, lead.deliveryAddress.indexOf(lead.state))
+    /*
+     lead.deliveryAddress = lead.deliveryAddress
+      .substring(0, lead.deliveryAddress.indexOf(lead.city))
       .split(" ")
       .filter(function (el) {
         return el != "";
       })
-      .splice(-1)
-      .toString();
-  }
+      .toString()
+      .replace(",", " ")
+      .replace(",", " ")
+      .replace(",", " ")
+      .toProperCase();  
+    */
+    }
+
 
   if (lead.amount != null) {
     lead.amount = lead.amount
@@ -156,17 +176,7 @@ let lead = formattedLiens[0]
   }
 
   if (lead.deliveryAddress != null) {
-    lead.deliveryAddress = lead.deliveryAddress
-      .substring(0, lead.deliveryAddress.indexOf(lead.city))
-      .split(" ")
-      .filter(function (el) {
-        return el != "";
-      })
-      .toString()
-      .replace(",", " ")
-      .replace(",", " ")
-      .replace(",", " ")
-      .toProperCase();
+   
   }
 
   if (lead.city != null) {
@@ -390,6 +400,7 @@ const newLead = new Lead({
   const leada = await newLead.save();
 
    res.json(leada)
+   
 });
 router.get("/", async (req, res) => {
   // console.log(req);
